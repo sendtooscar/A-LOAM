@@ -112,6 +112,7 @@ void TransformToStart(PointType const *const pi, PointType *const po)
 {
     //interpolation ratio
     double s;
+    //std::cout << "Dist"<< DISTORTION <<std::endl;
     if (DISTORTION)
         s = (pi->intensity - int(pi->intensity)) / SCAN_PERIOD;
     else

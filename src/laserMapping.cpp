@@ -35,6 +35,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
+//#include <utility>
 #include <vector>
 #include <aloam_velodyne/common.h>
 #include <nav_msgs/Odometry.h>
@@ -52,11 +53,18 @@
 #include <tf/transform_broadcaster.h>
 #include <eigen3/Eigen/Dense>
 #include <ceres/ceres.h>
+#include <ceres/covariance.h>
 #include <mutex>
 #include <queue>
 #include <thread>
 #include <iostream>
 #include <string>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+#include "Spectra/GenEigsSolver.h"
+#include "Spectra/MatOp/SparseGenMatProd.h"
 
 #include "lidarFactor.hpp"
 #include "aloam_velodyne/common.h"
@@ -193,6 +201,28 @@ void laserCloudFullResHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloud
 	mBuf.unlock();
 }
 
+
+//O
+void ceresToEigen(const ceres::CRSMatrix& crs, Eigen::SparseMatrix<double>& eigenSparse)
+{
+    int numRows = crs.num_rows;
+    int numCols = crs.num_cols;
+    //int numNonZeros = crs.num_nonzeros;
+
+    eigenSparse.resize(numRows, numCols);
+    //eigenSparse.reserve(numNonZeros);
+
+    for (int i = 0; i < numRows; i++)
+    {
+        for (int j = crs.rows[i]; j < crs.rows[i+1]; j++)
+        {
+            eigenSparse.insert(i, crs.cols[j]) = crs.values[j];
+        }
+    }
+
+    eigenSparse.makeCompressed();
+}
+
 //receive odomtry
 void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &laserOdometry)
 {
@@ -305,8 +335,21 @@ void process()
 			mBuf.unlock();
 
 			TicToc t_whole;
+                
+              
 
 			transformAssociateToMap();
+			
+               printf("time %f :", timeLaserOdometry);				
+		     std::cout << "recieved feature cloud with size: " << laserCloudCornerLast->size() << ","<< 
+                         laserCloudSurfLast->size() << std::endl;
+               std::cout << t_w_curr.x() << " " << t_w_curr.y() << " " << t_w_curr.z() << " " << std::endl;
+               std::cout << q_w_curr.w() << " " << q_w_curr.x() << " " << q_w_curr.y() << " " << q_w_curr.z() << "" << std::endl;
+               std::cout << t_wodom_curr.x() << " " << t_wodom_curr.y() << " " << t_wodom_curr.z() << " " << std::endl;
+               std::cout << q_wodom_curr.w() << " " << q_wodom_curr.x() << " " << q_wodom_curr.y() << " " << q_wodom_curr.z() << "" << std::endl;
+               std::cout << t_wmap_wodom.x() << " " << t_wmap_wodom.y() << " " << t_wmap_wodom.z() << " " << std::endl;
+               std::cout << q_wmap_wodom.w() << " " << q_wmap_wodom.x() << " " << q_wmap_wodom.y() << " " << q_wmap_wodom.z() << "" << std::endl;
+               
 
 			TicToc t_shift;
 			int centerCubeI = int((t_w_curr.x() + 25.0) / 50.0) + laserCloudCenWidth;
@@ -506,6 +549,7 @@ void process()
 				laserCloudCenDepth--;
 			}
 
+               
 			int laserCloudValidNum = 0;
 			int laserCloudSurroundNum = 0;
 
@@ -527,6 +571,9 @@ void process()
 					}
 				}
 			}
+
+
+               printf("Current cube index %d %d %d | for pose %f %f %f |valids %f %f\n", centerCubeI, centerCubeJ, centerCubeK, t_w_curr.x(), t_w_curr.y(), t_w_curr.z(), laserCloudValidNum, laserCloudSurroundNum);
 
 			laserCloudCornerFromMap->clear();
 			laserCloudSurfFromMap->clear();
@@ -551,6 +598,8 @@ void process()
 
 			printf("map prepare time %f ms\n", t_shift.toc());
 			printf("map corner num %d  surf num %d \n", laserCloudCornerFromMapNum, laserCloudSurfFromMapNum);
+               printf("stack corner num %d  surf num %d \n", laserCloudCornerStackNum, laserCloudSurfStackNum); 
+
 			if (laserCloudCornerFromMapNum > 10 && laserCloudSurfFromMapNum > 50)
 			{
 				TicToc t_opt;
@@ -704,8 +753,8 @@ void process()
 						*/
 					}
 
-					//printf("corner num %d used corner num %d \n", laserCloudCornerStackNum, corner_num);
-					//printf("surf num %d used surf num %d \n", laserCloudSurfStackNum, surf_num);
+					printf("corner num %d used corner num %d \n", laserCloudCornerStackNum, corner_num);
+					printf("surf num %d used surf num %d \n", laserCloudSurfStackNum, surf_num);
 
 					printf("mapping data assosiation time %f ms \n", t_data.toc());
 
@@ -720,18 +769,181 @@ void process()
 					ceres::Solve(options, &problem, &summary);
 					printf("mapping solver time %f ms \n", t_solver.toc());
 
-					//printf("time %f \n", timeLaserOdometry);
-					//printf("corner factor num %d surf factor num %d\n", corner_num, surf_num);
-					//printf("result q %f %f %f %f result t %f %f %f\n", parameters[3], parameters[0], parameters[1], parameters[2],
-					//	   parameters[4], parameters[5], parameters[6]);
+					printf("time %f \n", timeLaserOdometry);
+					printf("corner factor num %d surf factor num %d\n", corner_num, surf_num);
+					printf("result q %f %f %f %f result t %f %f %f\n", parameters[3], parameters[0], parameters[1], parameters[2],
+						   parameters[4], parameters[5], parameters[6]);
+                         std::cout << summary.BriefReport() << "\n";
+
+                    if(iterCount ==1 && false){
+
+                    	ceres::Covariance::Options options;
+						ceres::Covariance covariance(options);
+
+						std::vector<std::pair<const double*, const double*> > covariance_blocks;
+						covariance_blocks.push_back(std::make_pair(parameters, parameters));
+						covariance_blocks.push_back(std::make_pair(parameters+4, parameters+4));
+
+
+						CHECK(covariance.Compute(covariance_blocks, &problem));
+
+						double covariance_xx[3 * 3];
+						double covariance_yy[3 * 3];
+						covariance.GetCovarianceBlockInTangentSpace(parameters, parameters, covariance_xx);
+						covariance.GetCovarianceBlock(parameters+4, parameters+4, covariance_yy);
+						//GetCovarianceBlockInTangentSpace()
+
+
+						std::cout << "cov ang "<<  covariance_xx[0] << " " <<  covariance_xx[4] << " "  << covariance_xx[8] << std::endl;
+						std::cout << "cov pos "<<  covariance_yy[0] << " " <<  covariance_yy[4] << " "  << covariance_yy[8] << std::endl;
+						/*for(int i=0; i<9;i++){
+							std::cout <<  covariance_xx[i] << " ";
+					    }
+
+					    for(int i=0; i<9;i++){
+							std::cout <<  covariance_yy[i] << " ";
+					    }
+
+					    Eigen::MatrixXd mat(3, 3);
+					    for (int i = 0; i < 3; i++) {
+					        for (int j = 0; j < 3; j++) {
+					            mat(i, j) = covariance_xx[i * 3 + j];
+					        }
+					    }*/
+
+					    /*Eigen::EigenSolver<MatrixXd> es(mat);
+
+					    if (es.info() != Eigen::Success) {
+					        std::cerr << "Eigen decomposition failed" << std::endl;
+					        
+					    }
+					    else{
+					    Eigen::VectorXcd eigenvalues = es.eigenvalues();
+					    Eigen::MatrixXcd eigenvectors = es.eigenvectors();
+
+					    std::cout << "Eigenvalues: " << std::endl << eigenvalues << std::endl << std::endl;
+					    std::cout << "Eigenvectors: " << std::endl << eigenvectors << std::endl << std::endl;}*/
+
+  	
+					  	// Set the options for the evaluation
+					ceres::Problem::EvaluateOptions eval_options;
+					eval_options.apply_loss_function = false; // set to true if using a loss function
+					eval_options.num_threads = 8;
+					// Allocate space for the Jacobian matrix
+					/*int num_residuals = problem.NumResiduals();
+					int num_parameters = problem.NumParameters();
+					ceres::CRSMatrix jacobian;
+					jacobian.set_num_rows(num_residuals);
+					jacobian.set_num_cols(num_parameters);
+					jacobian.set_num_nonzeros(0); 
+
+					  // Get the optimized parameter values
+					  std::vector<double*> parameter_blocks;
+					  problem.GetParameterBlocks(&parameter_blocks);
+
+					  // Get the sizes of the parameter blocks
+					  std::vector<int> parameter_block_sizes;
+					  parameter_block_sizes.reserve(parameter_blocks.size());
+					  for (const auto* parameter_block : parameter_blocks) {
+					    parameter_block_sizes.push_back(problem.ParameterBlockLocalSize(parameter_block));
+					  }
+
+					  // Get the number of residuals and parameters
+					  const int num_residuals = problem.NumResiduals();
+					  const int num_parameters = problem.NumParameters();
+
+					  // Create a vector to store the Jacobian matrix
+					  std::vector<double> jacobian(num_residuals * num_parameters);*/
+
+					  double cost = 0.0;
+					  ceres::CRSMatrix calib_jacobian;
+					  problem.Evaluate(eval_options, &cost, nullptr, nullptr, &calib_jacobian);
+
+					  Eigen::SparseMatrix<double> eigenSparse;
+
+    				  ceresToEigen(calib_jacobian, eigenSparse);
+
+
+    				  // calculate JtJ
+    				  Eigen::MatrixXd A =  eigenSparse.transpose() * eigenSparse;
+
+
+    				  Eigen::EigenSolver<Eigen::MatrixXd> eigensolver;
+    				  eigensolver.compute(A);
+    				  Eigen::VectorXd eigen_values = eigensolver.eigenvalues().real();
+    				  Eigen::MatrixXd eigen_vectors = eigensolver.eigenvectors().real();
+
+
+    				  std::cout << "Eigen cost" << cost << std::endl;
+
+ 					  std::cout << "Eigen size" << eigenSparse.rows() << " | " << eigenSparse.cols() << std::endl;
+ 					  std::cout << "Eigen Value " ;
+				      for (int i = 0; i < eigen_values.size(); i++) {
+					       std::cout << " " << eigen_values[i];
+					  }
+					  std::cout << std::endl;
+
+					  Eigen::IOFormat CommaInitFmt(3, 1, ", ", ", ", "", "", " << ", ";");
+
+					  std::cout << "Eigen Vecs " << eigen_vectors.format(CommaInitFmt) << std::endl ;
+				    
+
+
+    				  /*Spectra::SparseGenMatProd<double> op(eigenSparse);
+
+    				  // Construct eigen solver object, requesting the largest three eigenvalues
+				    Spectra::GenEigsSolver<Spectra::SparseGenMatProd<double>> eigs(op, 6, 9);
+
+				    // Initialize and compute
+				    eigs.init();
+				    int nconv = eigs.compute(Spectra::SortRule::LargestMagn);
+
+				    // Retrieve results
+				    Eigen::VectorXcd evalues;
+				    if(eigs.info() == Spectra::CompInfo::Successful)
+				        evalues = eigs.eigenvalues();
+
+				    std::cout << "Eigen cost" << cost << std::endl;
+
+ 					std::cout << "Eigen size" << eigenSparse.rows() << " | " << eigenSparse.cols() << std::endl;
+ 					std::cout << "Eigen Value " ;
+				    for (int i = 0; i < evalues.size(); i++) {
+					     std::cout << " " << evalues[i];
+					}
+
+					std::cout << std::endl ;
+
+					Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> qr(eigenSparse);
+    				int rank = qr.rank();
+
+    				std::cout << "Eigen Rank of matrix A is: " << rank << std::endl;*/
+
+
+    				/*const int n = 6; // number of largest singular values/vectors to compute
+    				Eigen::SparseSVD<Eigen::SparseMatrix<double>> svd;
+    				svd.compute(eigenSparse, n);
+    				std::cout << "Eigen U matrix:\n" << svd.matrixU() << std::endl;
+    				std::cout << "Eigen Singular values:\n" << svd.singularValues() << std::endl;
+    				std::cout << "Eigen V matrix:\n" << svd.matrixV() << std::endl;*/
+
+
+
+
+                    }     
 				}
 				printf("mapping optimization time %f \n", t_opt.toc());
+				/*int n;
+               	std::cout << "hi********************************************************************";
+               	std::cin >> n;*/
+
+
 			}
 			else
 			{
 				ROS_WARN("time Map corner and surf num are not enough");
 			}
 			transformUpdate();
+              
 
 			TicToc t_add;
 			for (int i = 0; i < laserCloudCornerStackNum; i++)

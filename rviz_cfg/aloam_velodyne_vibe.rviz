@@ -11,7 +11,6 @@ Panels:
         - /odometry1/PointCloud21
         - /mapping1
         - /mapping1/allMapCloud1
-        - /mapping1/currPoints1
         - /Image1
       Splitter Ratio: 0.5
     Tree Height: 753
@@ -33,7 +32,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: surround
+    SyncSource: allMapCloud
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -196,11 +195,11 @@ Visualization Manager:
           Topic: /aft_mapped_path
           Unreliable: false
           Value: true
-        - Alpha: 0.10000000149011612
+        - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 23.324695587158203
-            Min Value: -9.699002265930176
+            Max Value: 0.7862922549247742
+            Min Value: -0.5626726150512695
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -217,9 +216,9 @@ Visualization Manager:
           Queue Size: 10
           Selectable: true
           Size (Pixels): 3
-          Size (m): 0.4000000059604645
+          Size (m): 0.10000000149011612
           Style: Points
-          Topic: /laser_cloud_map
+          Topic: /velodyne_points
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -236,7 +235,7 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: FlatColor
           Decay Time: 0
-          Enabled: false
+          Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Min Color: 0; 0; 0
@@ -251,7 +250,7 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: false
+          Value: true
         - Alpha: 0.10000000149011612
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -634,9 +633,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        aft_mapped:
+        imu_link:
           Value: true
-        camera_init:
+        world:
           Value: true
       Marker Scale: 1
       Name: TF
@@ -644,16 +643,14 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        camera_init:
-          aft_mapped:
-            {}
+        {}
       Update Interval: 0
       Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: camera_init
+    Fixed Frame: velodyne
     Frame Rate: 30
   Name: root
   Tools:
@@ -677,25 +674,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 49.317230224609375
+      Distance: 7.5779876708984375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -4.634471416473389
-        Y: 4.252012252807617
-        Z: -0.03737451508641243
+        X: 1.0804443359375
+        Y: -1.2367260456085205
+        Z: 0.0030403698328882456
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9147964715957642
+      Pitch: 1.4197964668273926
       Target Frame: aft_mapped
       Value: Orbit (rviz)
-      Yaw: 1.5753962993621826
+      Yaw: 2.9203989505767822
     Saved:
       - Class: rviz/FrameAligned
         Enable Stereo Rendering:

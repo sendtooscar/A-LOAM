@@ -20,15 +20,17 @@ find_package(catkin REQUIRED COMPONENTS
 
 #find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
-find_package(OpenCV REQUIRED)
+#find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV 3.4.1 REQUIRED PATHS "/storage_ssd/opencv-3.4.1" NO_DEFAULT_PATH)
 find_package(Ceres REQUIRED)
 
 include_directories(
-  include
+  include /usr/include/
 	${catkin_INCLUDE_DIRS} 
 	${PCL_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS})
+#when building this there is a conflict between opencv flann and pcl flann, had to rename the opencv flann include directory to flanncv to resolve the issue
 
 catkin_package(
   CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
@@ -46,6 +48,7 @@ target_link_libraries(alaserOdometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERE
 add_executable(alaserMapping src/laserMapping.cpp)
 target_link_libraries(alaserMapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
 
+#removed this for now due to flann conflict between opencv and PCL
 add_executable(kittiHelper src/kittiHelper.cpp)
 target_link_libraries(kittiHelper ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS})
 
