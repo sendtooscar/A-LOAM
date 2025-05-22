@@ -31,24 +31,12 @@ Clone the repository and catkin_make:
     catkin_make
     source ~/catkin_ws/devel/setup.bash
 ```
-
-## 3. Velodyne VLP-16 Example
-Download [NSH indoor outdoor](https://drive.google.com/file/d/1s05tBQOLNEDDurlg48KiUWxCp-YqYyGH/view) to YOUR_DATASET_FOLDER. 
-
-```
-    roslaunch aloam_velodyne aloam_velodyne_VLP_16.launch
-    rosbag play YOUR_DATASET_FOLDER/nsh_indoor_outdoor.bag
-```
+## 3. MUN FRL example
+1. Download a bag file from mumfrl dataset (lighthous and quary prefered) :https://mun-frl-vil-dataset.readthedocs.io/en/latest/
+2. source workspace and run $roslaunch aloam_velodyne aloam_velodyne_VLP_16.launch
+3. play bag (e.g. $rosbag play flight_dataset2.bag -s 75)
 
 
-## 4. KITTI Example (Velodyne HDL-64)
-Download [KITTI Odometry dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) to YOUR_DATASET_FOLDER and set the `dataset_folder` and `sequence_number` parameters in `kitti_helper.launch` file. Note you also convert KITTI dataset to bag file for easy use by setting proper parameters in `kitti_helper.launch`. 
-
-```
-    roslaunch aloam_velodyne aloam_velodyne_HDL_64.launch
-    roslaunch aloam_velodyne kitti_helper.launch
-```
-<img src="https://github.com/HKUST-Aerial-Robotics/A-LOAM/blob/devel/picture/kitti_gif.gif" width = 720 height = 351 />
 
 ## 5. Docker Support
 To further facilitate the building process, we add docker in our code. Docker environment is like a sandbox, thus makes our code environment-independent. To run with docker, first make sure [ros](http://wiki.ros.org/ROS/Installation) and [docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/) are installed on your machine. Then add your account to `docker` group by `sudo usermod -aG docker $YOUR_USER_NAME`. **Relaunch the terminal or logout and re-login if you get `Permission denied` error**, type:
